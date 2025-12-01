@@ -1,0 +1,73 @@
+version: '3.8'
+
+services:
+  # Open WebUI service
+  open-webui:
+    container_name: open-webui
+    image: ghcr.io/open-webui/open-webui:main # Using a common image for Open WebUI
+    ports:
+      - "3000:8080" # Map host port 3000 to container port 8080 (default for Open WebUI)
+    environment:
+      # Enable RAG (Retrieval Augmented Generation) web search
+      ENABLE_RAG_WEB_SEARCH: "True"
+      # Specify SearXNG as the web search engine
+      RAG_WEB_SEARCH_ENGINE: "searxng"
+      # Number of search results to retrieve
+      RAG_WEB_SEARCH_RESULT_COUNT: 3
+      # Number of concurrent requests to SearXNG
+      RAG_WEB_SEARCH_CONCURRENT_REQUESTS: 10
+      # The URL for SearXNG queries. Updated to match the actual container name and add JSON format.
+      SEARXNG_QUERY_URL: "http://searxng-OpenWebUI-DC:8080/search?q=<query>&format=json"
+      # Disable authentication for Open WebUI
+      WEBUI_AUTH: "False"
+    volumes:
+      - ./open-webui-data:/app/backend/data # Persistent data for Open WebUI
+    restart: unless-stopped
+    # Removed 'depends_on' here, as SearXNG will now depend on Open WebUI starting
+
+  # SearXNG browser service
+  searxng:
+    container_name: searxng # This will likely be prefixed by Docker Compose's project name, resulting in the name observed in docker ps.
+    image: searxng/searxng:latest # Official SearXNG image
+    ports:
+      - "8081:8080" # Changed host port from 8080 to 8081
+    volumes:
+      - ./searxng:/etc/searxng:rw # Persistent configuration for SearXNG
+    env_file:
+      - .env # Load environment variables from the .env file
+    environment:
+      # Set the base URL for the SearXNG instance
+      # This is important for SearXNG to correctly generate URLs within its responses.
+      # Using localhost is generally fine for inter-container communication on the default bridge network.
+      BASE_URL: "http://localhost:8081" # Updated BASE_URL to reflect new host port
+      # Set an instance name for SearXNG (optional, but good practice)
+      INSTANCE_NAME: "searxng-webui-instance"
+    restart: unless-stopped
+    # Security capabilities drop and add for SearXNG as per documentation
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - SETGID
+      - SETUID
+      - DAC_OVERRIDE
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "1m"
+        max-file: "1"
+    depends_on:
+      - open-webui # Ensure Open WebUI starts before SearXNG
+
+  # Kokoro FastAPI CPU service
+  # This service replaces the previous kokoro-fastapi-gpu service with the CPU version.
+  kokoro-cpu:
+    container_name: kokoro-cpu
+    ports:
+      - "8880:8880" # Map host port 8880 to container port 8880
+    image: ghcr.io/remsky/kokoro-fastapi-cpu # Changed to CPU image
+    restart: always # Set restart policy to 'always'
+    # No 'deploy' section needed for CPU version.
+    depends_on:
+      - open-webui # Ensure Open WebUI starts before SearXNG
+
