@@ -1,0 +1,22 @@
+Admin-pannel: settings-connection openai api-  http://192.168.1.9:1234/v1
+web search:
+Web Search Engine
+
+searxng
+Searxng Query URL
+http://searxng:8080/search?q=<query>
+
+audio:
+Text-to-Speech
+Text-to-Speech Engine
+
+OpenAI
+http://kokoro-cpu:8880/v1
+API Key
+not-needed
+
+TTS Voice
+af_sky
+TTS Model
+kokoro
+

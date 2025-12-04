@@ -6,7 +6,7 @@ services:
     container_name: open-webui
     image: ghcr.io/open-webui/open-webui:main # Using a common image for Open WebUI
     ports:
-      - "3000:8080" # Map host port 3000 to container port 8080 (default for Open WebUI)
+      - "4000:8080" # Map host port 3000 to container port 8080 (default for Open WebUI)
     environment:
       # Enable RAG (Retrieval Augmented Generation) web search
       ENABLE_RAG_WEB_SEARCH: "True"
@@ -22,7 +22,7 @@ services:
       WEBUI_AUTH: "False"
     volumes:
       - ./open-webui-data:/app/backend/data # Persistent data for Open WebUI
-    restart: unless-stopped
+    restart: no
     # Removed 'depends_on' here, as SearXNG will now depend on Open WebUI starting
 
   # SearXNG browser service
@@ -30,7 +30,7 @@ services:
     container_name: searxng # This will likely be prefixed by Docker Compose's project name, resulting in the name observed in docker ps.
     image: searxng/searxng:latest # Official SearXNG image
     ports:
-      - "8081:8080" # Changed host port from 8080 to 8081
+      - "8085:8080" # Changed host port from 8080 to 8081
     volumes:
       - ./searxng:/etc/searxng:rw # Persistent configuration for SearXNG
     env_file:
@@ -39,10 +39,10 @@ services:
       # Set the base URL for the SearXNG instance
       # This is important for SearXNG to correctly generate URLs within its responses.
       # Using localhost is generally fine for inter-container communication on the default bridge network.
-      BASE_URL: "http://localhost:8081" # Updated BASE_URL to reflect new host port
+      BASE_URL: "http://localhost:8085" # Updated BASE_URL to reflect new host port
       # Set an instance name for SearXNG (optional, but good practice)
       INSTANCE_NAME: "searxng-webui-instance"
-    restart: unless-stopped
+    restart: no
     # Security capabilities drop and add for SearXNG as per documentation
     cap_drop:
       - ALL
@@ -64,9 +64,9 @@ services:
   kokoro-cpu:
     container_name: kokoro-cpu
     ports:
-      - "8880:8880" # Map host port 8880 to container port 8880
+      - "8885:8880" # Map host port 8880 to container port 8880
     image: ghcr.io/remsky/kokoro-fastapi-cpu # Changed to CPU image
-    restart: always # Set restart policy to 'always'
+    restart: no
     # No 'deploy' section needed for CPU version.
     depends_on:
       - open-webui # Ensure Open WebUI starts before SearXNG
